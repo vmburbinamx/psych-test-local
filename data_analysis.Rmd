@@ -13,16 +13,71 @@ load.project()
 
 ### Explorando los datos.
 
-En un data frame, ¿cuáles son los parámetros (dificultad y discriminación) de los ítems en 2018? De acuerdo a los datos disponibles en el *path* **data/test_data.csv**
-
-#### Limpieza de datos (nombres).
-
+- Estructura general.
 ```{r}
-head(test.data)
+glimpse(test.data)
 
 ```
 
 
+- Agrupación (por año).
+```{r}
+test.data %>% 
+  group_by(year) %>% 
+  tally()
+
+```
+
+- Agrupación (por año/campus).
+```{r}
+test.data %>% 
+  group_by(year, campusName) %>% 
+  tally()
+
+```
+
+- Agrupación (por usuario) - conteo de registros por usuario.
+```{r}
+test.data %>% 
+  group_by(idUser_int) %>% 
+  tally()
+
+```
+
+- Conteo de usuarios únicos.
+```{r}
+test.data %>% 
+  summarise(n_distinct(idUser_int))
+
+```
+
+- Conteo de usuarios por número de registros disponibles (por cada año/campus)
+```{r}
+test.data %>% 
+  group_by(year, campusName, idUser_int) %>% 
+  summarise(records = n()) %>% 
+  group_by(year, campusName, records) %>% 
+  summarise(users = n())
+
+```
+
+
+- Conteo de preguntas
+```{r}
+test.data %>% 
+  group_by(idQuestion) %>% 
+  tally()
+
+```
+
+- Un caso de ejemplo: resultados de examen aplicado en el **Campus A** en el **2019** para el usuario **1104**.
+```{r}
+test.data %>% 
+  filter(campusName == "Campus A") %>% 
+  filter(year==2019) %>% 
+  filter(idUser_int==1104)
+
+```
 
 ### Acerca de la pregunta 1.
 
@@ -31,7 +86,9 @@ En un data frame, ¿cuáles son los parámetros (dificultad y discriminación) d
 #### Limpieza de datos (nombres).
 
 ```{r}
-head(test.data)
+test.data %>% 
+  filter(year==2018) %>% 
+  head()
 
 ```
 
