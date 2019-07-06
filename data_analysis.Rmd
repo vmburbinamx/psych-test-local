@@ -89,13 +89,13 @@ En un data frame, ¿cuáles son los parámetros (dificultad y discriminación) d
 #### (i) Calcular la dificultad por campus/item.
 
 ```{r}
-pregunta1a <- test.data %>% 
+pregunta1i <- test.data %>% 
   filter(year==2018) %>% 
   group_by(year, campusName, idQuestion) %>% 
   summarise(count_of_students = n_distinct(idUser_int),
             students_with_correct_answers = sum(isCorrect, na.rm = TRUE)) %>% 
   mutate(difficulty = (students_with_correct_answers/count_of_students)*100) %>% 
-  arrange(desc(difficulty)) %>% 
+  arrange(campusName, idQuestion, students_with_correct_answers) %>% 
   data.table()
 ```
 
@@ -103,7 +103,7 @@ pregunta1a <- test.data %>%
 
 ```{r, echo=FALSE}
 renderDataTable(
-  pregunta1a,
+  pregunta1i,
   options = list(pageLength=5)
 )
 ```
@@ -112,65 +112,153 @@ renderDataTable(
 
 ```{r, echo=FALSE}
 renderPlotly(
- pregunta1a %>% 
+ pregunta1i %>% 
    ggplot(aes(x=difficulty))+
    geom_histogram(bins = 10)
 )
 ```
 
-#### (ii) Calcular la dificultad por item.
+#### (ii) Calcular la discriminación por campus/item.
+
+- Calcular el 27% de usuarios/estudiantes por campus
 
 ```{r}
-pregunta1b <- test.data %>% 
+pregunta1iia <- test.data %>% 
   filter(year==2018) %>% 
-  group_by(year, idQuestion) %>% 
-  summarise(count_of_students = n_distinct(idUser_int),
-            students_with_correct_answers = sum(isCorrect, na.rm = TRUE)) %>% 
-  mutate(difficulty = (students_with_correct_answers/count_of_students)*100) %>% 
-  arrange(desc(difficulty)) %>% 
+  group_by(campusName) %>% 
+  summarise(twentySevenPercent = round(n_distinct(idUser_int)*.27,0)) %>% 
   data.table()
 ```
 
-#### Tabla
-
 ```{r, echo=FALSE}
 renderDataTable(
-  pregunta1b,
+  pregunta1iia,
   options = list(pageLength=5)
 )
 ```
 
-#### Distribución
+- Ubicar top/bottom de usuarios/estudiantes (el 27% más alto y más bajo)
+
+```{r}
+pregunta1iib <- test.data %>% 
+  filter(year==2018) %>% 
+  group_by(campusName, idUser_int) %>% 
+  summarise(correct_answers = sum(isCorrect, na.rm = TRUE)) %>% 
+  arrange(campusName,desc(correct_answers)) %>% 
+  mutate(position = row_number(),
+         min_position = min(position),
+         max_position = max(position)) %>%
+  left_join(pregunta1iia) %>% 
+  mutate(isInTopPosition = if_else(position<=twentySevenPercent,TRUE,FALSE),
+         isInBottomPosition = if_else(position>(max_position-twentySevenPercent),TRUE,FALSE),
+         isRelevant = if_else(isInTopPosition|isInBottomPosition,TRUE,FALSE)) %>% 
+  filter(isRelevant) %>% 
+  select(-c(min_position,max_position,twentySevenPercent)) %>% 
+  data.table()
+```
 
 ```{r, echo=FALSE}
-renderPlotly(
- pregunta1b %>% 
-   ggplot(aes(x=difficulty))+
-   geom_histogram(bins = 10)
+#Summarized df
+pregunta1iibSummarized <- pregunta1iib %>% 
+  select(-c(correct_answers,position))
+```
+
+```{r, echo=FALSE}
+renderDataTable(
+  pregunta1iib,
+  options = list(pageLength=5)
 )
 ```
 
-#### (iii) Calcular la discriminación por campus/item.
+- Calcular respuestas correctas del top 27 % (por *idQuestion*)
 
 ```{r}
-pregunta1c <- test.data %>% 
+pregunta1iic <- test.data %>% 
   filter(year==2018) %>% 
-  group_by(year, idQuestion) %>% 
+  group_by(campusName, idUser_int, idQuestion) %>% 
+  summarise(correct_answers = sum(isCorrect, na.rm = TRUE)) %>% 
+  left_join(pregunta1iibSummarized, by = c("campusName", "idUser_int")) %>% 
+  filter(isInTopPosition) %>% 
+  group_by(campusName, idQuestion) %>% 
+  summarise(correct_answers_top27= sum(correct_answers)) %>% 
+  data.table()
+```
+
+```{r, echo=FALSE}
+renderDataTable(
+  pregunta1iic,
+  options = list(pageLength=5)
+)
+```
+
+- Calcular respuestas correctas del bottom 27 % (por *idQuestion*)
+
+```{r}
+pregunta1iid <- test.data %>% 
+  filter(year==2018) %>% 
+  group_by(campusName, idUser_int, idQuestion) %>% 
+  summarise(correct_answers = sum(isCorrect, na.rm = TRUE)) %>% 
+  left_join(pregunta1iibSummarized, by = c("campusName", "idUser_int")) %>% 
+  filter(isInBottomPosition) %>% 
+  group_by(campusName, idQuestion) %>% 
+  summarise(correct_answers_bottom27= sum(correct_answers)) %>% 
+  data.table()
+```
+
+```{r, echo=FALSE}
+renderDataTable(
+  pregunta1iid,
+  options = list(pageLength=5)
+)
+```
+
+- Calcular discriminación por reactivo/pregunta. Ver dataframe **pregunta1ii**
+
+```{r}
+pregunta1ii <- test.data %>% 
+  filter(year==2018) %>% 
+  group_by(year, campusName, idQuestion) %>% 
   summarise(count_of_students = n_distinct(idUser_int),
             students_with_correct_answers = sum(isCorrect, na.rm = TRUE)) %>% 
   mutate(difficulty = (students_with_correct_answers/count_of_students)*100) %>%
-  mutate(percentile = ntile(idQuestion,100)) %>% 
-  arrange(desc(difficulty)) %>% 
+  arrange(campusName,idQuestion) %>% 
+  left_join(pregunta1iia, by = c("campusName")) %>% 
+  left_join(pregunta1iic,by = c("campusName", "idQuestion")) %>% 
+  left_join(pregunta1iid,by = c("campusName", "idQuestion")) %>% 
+  mutate(discrimination = ((correct_answers_top27-correct_answers_bottom27)/twentySevenPercent)) %>% 
+  select(year, campusName,idQuestion, difficulty,discrimination,students_with_correct_answers,count_of_students) %>% 
   data.table()
 ```
 
 ```{r, echo=FALSE}
 renderDataTable(
-  pregunta1c,
+  pregunta1ii,
   options = list(pageLength=5)
 )
 ```
 
+```{r, echo=FALSE}
+renderPlotly(
+ pregunta1ii %>% 
+   ggplot(aes(x=difficulty, y=discrimination, color=campusName))+
+   geom_point()
+)
+```
+
+- Nota:
+
+Al final de los procesos para determinar la discriminación y la dificultad, agregué una visualización para ubicar si había algún dato notable en la relación de ambas métricas. Lo que fue evidente a primera vista, fue que los resultados para el **Campus A** y el **Campus C** fueron idénticos (pues se transponen en la visualización). Hice un test adicional:
+
+* Preparé dos dataframes, uno para cada uno de estos campus, y quité el campo **campusName**;
+* Los comparé, y resultaron idénticos.
+
+```{r}
+dataSetCampusA <- test.data %>% filter(campusName=="Campus A") %>% select(-campusName)
+dataSetCampusC <- test.data %>% filter(campusName=="Campus C") %>% select(-campusName)
+identical(dataSetCampusA,dataSetCampusC)
+```
+
+Continuaré el análisis inculyendo todos los campus, pero convendría revisar los datos de origen.
 
 ### Acerca de la pregunta 2.
 
@@ -178,6 +266,6 @@ El ranking de las escuelas por nivel académico, de acuerdo a los datos disponib
 
 
 ```{r}
-#Calcular percentiles
+
 
 ```
