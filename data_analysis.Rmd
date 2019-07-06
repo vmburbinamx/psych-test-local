@@ -284,11 +284,62 @@ Continuaré el análisis inculyendo todos los campus, pero convendría revisar l
 
 ### Acerca de la pregunta 2.
 
-El ranking de las escuelas por nivel académico, de acuerdo a los datos disponibles en el *path* **data/test_data.csv**. Se entenderá que el nivel académico está definido por el número de respuestas correctas en la evaluación.
+El ranking de las escuelas por nivel académico, de acuerdo a los datos disponibles en el *path* **data/test_data.csv**. Se entenderá que el nivel académico está definido por la mayor proporción de respuestas correctas en la evaluación. Es notable que el **Campus B** muestra una mayor proporción de respuestas correctas
 
 
 ```{r}
 pregunta2 <- test.data %>% 
-  group_by(campusName) %>% 
-  summarise()
+  group_by(campusName, year) %>% 
+  summarise(correct_answers = sum(isCorrect),
+            total_items = n()) %>% 
+  mutate(prop_correct_answers=round(correct_answers/total_items*100))
+```
+
+```{r, echo=FALSE}
+renderDataTable(
+  pregunta2,
+  options = list(pageLength=6)
+)
+```
+
+```{r, echo=FALSE}
+renderPlotly(
+ pregunta2 %>% 
+   ggplot(aes(x=as.factor(year),y=prop_correct_answers,fill=campusName))+
+   geom_bar(stat="identity")
+)
+```
+
+### Acerca de la pregunta 3.
+
+El ranking de los alumnos dentro de una escuela por nivel de habilidad, de acuerdo a los datos disponibles en el *path* **data/test_data.csv**.
+
+```{r}
+pregunta3 <- test.data %>% 
+  group_by(year, campusName, idUser_int) %>% 
+  summarise(correct_answers = sum(isCorrect, na.rm = TRUE)) %>% 
+  arrange(campusName,desc(correct_answers)) %>% 
+  mutate(rank = dense_rank(desc(correct_answers))) %>%
+  data.table()
+```
+
+```{r, echo=FALSE}
+inputPanel(
+  selectInput(inputId = "theYear",
+              label = "Year:",
+              choices = unique(pregunta3$year),
+              selected = 2019),
+  sliderInput(inputId = "theRanking",
+              label = "Posición:",
+              min=min(pregunta3$rank),
+              max=max(pregunta3$rank),
+              value = c(min(pregunta3$rank), 3),
+              step = 1)
+)
+renderDataTable(
+  pregunta3 %>% 
+    filter(year==input$theYear) %>% 
+    filter(rank>=input$theRanking[1], rank<=input$theRanking[2]),
+  options = list(pageLength=6)
+)
 ```
