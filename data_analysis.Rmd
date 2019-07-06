@@ -94,7 +94,7 @@ pregunta1a <- test.data %>%
   group_by(year, campusName, idQuestion) %>% 
   summarise(count_of_students = n_distinct(idUser_int),
             students_with_correct_answers = sum(isCorrect, na.rm = TRUE)) %>% 
-  mutate(difficulty = students_with_correct_answers/count_of_students) %>% 
+  mutate(difficulty = (students_with_correct_answers/count_of_students)*100) %>% 
   arrange(desc(difficulty)) %>% 
   data.table()
 ```
@@ -126,7 +126,7 @@ pregunta1b <- test.data %>%
   group_by(year, idQuestion) %>% 
   summarise(count_of_students = n_distinct(idUser_int),
             students_with_correct_answers = sum(isCorrect, na.rm = TRUE)) %>% 
-  mutate(difficulty = students_with_correct_answers/count_of_students) %>% 
+  mutate(difficulty = (students_with_correct_answers/count_of_students)*100) %>% 
   arrange(desc(difficulty)) %>% 
   data.table()
 ```
@@ -155,10 +155,11 @@ renderPlotly(
 ```{r}
 pregunta1c <- test.data %>% 
   filter(year==2018) %>% 
-  group_by(year, campusName, idQuestion) %>% 
+  group_by(year, idQuestion) %>% 
   summarise(count_of_students = n_distinct(idUser_int),
             students_with_correct_answers = sum(isCorrect, na.rm = TRUE)) %>% 
-  mutate(difficulty = students_with_correct_answers/count_of_students) %>% 
+  mutate(difficulty = (students_with_correct_answers/count_of_students)*100) %>%
+  mutate(percentile = ntile(idQuestion,100)) %>% 
   arrange(desc(difficulty)) %>% 
   data.table()
 ```
