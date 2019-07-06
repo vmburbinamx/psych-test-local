@@ -385,20 +385,29 @@ renderDataTable(
 )
 ```
 
-- Acerca de los resultados por campus.
+- Acerca de los resultados por campus, el campus B muestra una mejora muy notoria. Los campus A y C también mejoraron, aunque no en la misma medida.
 
 ```{r}
-pregunta4ii <- test.data %>% 
-  group_by(year) %>% 
+pregunta4iii <- test.data %>% 
+  group_by(campusName, year) %>% 
   summarise(correct_answers = sum(isCorrect),
             total_items = n()) %>% 
   mutate(prop_correct_answers=round(correct_answers/total_items*100,1)) %>% 
-  select(year, prop_correct_answers)
+  select(-c(correct_answers,total_items))
 ```
 
 ```{r, echo=FALSE}
 renderDataTable(
-  pregunta4ii,
+  pregunta4iii,
   options = list(pageLength=6)
+)
+```
+
+```{r, echo=FALSE}
+renderPlotly(
+ pregunta4iii %>% 
+   ggplot(aes(x=as.factor(year),y=prop_correct_answers, fill=campusName))+
+   geom_bar(stat="identity")+
+   facet_wrap(~campusName)
 )
 ```
