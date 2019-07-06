@@ -343,3 +343,62 @@ renderDataTable(
   options = list(pageLength=6)
 )
 ```
+
+### Acerca de la pregunta 4.
+
+Dados los parámetros del modelo 2018, ¿los alumnos 2019 mejoraron o empeoraron en general (todos los campus) y por campus (qué campus empeoró, qué campus mejoró, qué campus se quedó igual)?
+
+- Hice una verificación para revisar la proporción de respuestas correctas por alumno/estudiante, sin embargo, en ningún caso tenemos información del mismo usuario para dos años distintos (ver dataframe), por lo que no es posible abundar en detalles como cuántos alumnos mejoraron, o cuáles de ellos empeoraron su rendimiento.
+
+```{r}
+pregunta4i <- test.data %>% 
+  group_by(campusName, year, idUser_int) %>% 
+  summarise(correct_answers = sum(isCorrect),
+            total_items = n()) %>% 
+  mutate(prop_correct_answers=round(correct_answers/total_items*100,1)) %>% 
+  spread(key = year, value = prop_correct_answers) %>% 
+  arrange(idUser_int)
+```
+
+```{r, echo=FALSE}
+renderDataTable(
+  pregunta4i,
+  options = list(pageLength=6)
+)
+```
+
+- De esta manera, haré validaciones generales por año. Resultado: respecto de 2018, los resultados de 2019 muestran una mayor proporción de respuestas correctas en la evaluación.
+
+```{r}
+pregunta4ii <- test.data %>% 
+  group_by(year) %>% 
+  summarise(correct_answers = sum(isCorrect),
+            total_items = n()) %>% 
+  mutate(prop_correct_answers=round(correct_answers/total_items*100,1)) %>% 
+  select(year, prop_correct_answers)
+```
+
+```{r, echo=FALSE}
+renderDataTable(
+  pregunta4ii,
+  options = list(pageLength=6)
+)
+```
+
+- Acerca de los resultados por campus.
+
+```{r}
+pregunta4ii <- test.data %>% 
+  group_by(year) %>% 
+  summarise(correct_answers = sum(isCorrect),
+            total_items = n()) %>% 
+  mutate(prop_correct_answers=round(correct_answers/total_items*100,1)) %>% 
+  select(year, prop_correct_answers)
+```
+
+```{r, echo=FALSE}
+renderDataTable(
+  pregunta4ii,
+  options = list(pageLength=6)
+)
+```
