@@ -73,6 +73,28 @@ test.data %>%
 
 ```
 
+- Tipos de respuesta
+```{r}
+test.data %>% 
+  group_by(isCorrect, campusName) %>% 
+  tally()
+
+```
+
+*Los NAs (87 en total), serán asumidos como incorrectos
+```{r}
+test.data <- test.data %>% 
+  mutate(isCorrect = if_else(is.na(isCorrect),0L,isCorrect))
+```
+
+- Validación de tipos de respuesta
+```{r}
+test.data %>% 
+  group_by(isCorrect, campusName) %>% 
+  tally()
+
+```
+
 - Un caso de ejemplo: resultados de examen aplicado en el **Campus A** en el **2019** para el usuario **1104**.
 ```{r}
 test.data %>% 
@@ -262,10 +284,11 @@ Continuaré el análisis inculyendo todos los campus, pero convendría revisar l
 
 ### Acerca de la pregunta 2.
 
-El ranking de las escuelas por nivel académico, de acuerdo a los datos disponibles en el *path* **data/test_data.csv**
+El ranking de las escuelas por nivel académico, de acuerdo a los datos disponibles en el *path* **data/test_data.csv**. Se entenderá que el nivel académico está definido por el número de respuestas correctas en la evaluación.
 
 
 ```{r}
-
-
+pregunta2 <- test.data %>% 
+  group_by(campusName) %>% 
+  summarise()
 ```
